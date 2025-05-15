@@ -1,0 +1,6 @@
+.generated_files
+build
+debug
+dist
+**/nbproject/Makefile-*
+**/nbproject/private
