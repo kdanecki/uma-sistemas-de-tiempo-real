@@ -4,3 +4,6 @@ debug
 dist
 **/nbproject/Makefile-*
 **/nbproject/private
+*.log
+*.log.inx
+**/disassembly
