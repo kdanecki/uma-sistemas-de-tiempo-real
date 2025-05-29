@@ -17,13 +17,15 @@ volatile unsigned char estado;
 #define ABRIR 37999
 #define CERRAR 36999
 
+volatile char flag = 1;
+
 void init_leds() {
     DDRB|= 1 << 2;
     DDRB|= 1 << 1;
     DDRB|= 1;
     DDRD|= 1 << 7;
     DDRD|= 1 << 5;
-    DDRD|= 1 << 4;
+    //DDRD|= 1 << 4;
     DDRC|= 1 << 4;
     DDRC|= 1 << 3;
 }
@@ -36,7 +38,8 @@ void init_interrupts() {
     PCMSK0= (1<<3) | (1<<4);
 }
 
-void init_pwm() {
+void init_timers() {
+    // timer 1
     DDRB |= 1 << 1;
     TCCR1A = 2 | 192;
     TCCR1B = 24 | 2;
@@ -45,6 +48,24 @@ void init_pwm() {
     OCR1A = 36999; // abrir
     //OCR1A = 36999; // cerrar
     
+    //timer 0
+    DDRB |= 1 << 2;
+    TCCR0A = 2;
+    TCCR0B = 7;
+    TIMSK0 = 7;
+    OCR0A = 5;
+    
+}
+
+void init_adc(){
+    ADMUX = (1 << REFS0) + (1<<ADLAR);
+    //select ADC channel with safety mask
+    ADMUX |= (5 & 0x0F);
+    ADCSRA = (1 << ADEN) + (1<<ADSC)+(1<<ADIE)+(1<<ADATE) +(1<<ADPS2)+(1<<ADPS1)+(1<<ADPS0);
+    
+    // boton para adc
+    EIMSK = 0x00;
+    EICRA = 0x03;
 }
 
 void led_on(unsigned char led){
@@ -80,7 +101,8 @@ void led_on(unsigned char led){
 void init_all() {
     init_leds();
     init_interrupts();
-    init_pwm();
+    init_timers();
+    init_adc();
     
     cars = 0;
     estado = 0;
@@ -145,8 +167,15 @@ void wait(){
     }
 }
 
+ISR(INT0_vect){
 
+    flag = 1;
 
+}
+
+ISR(TIMER0_COMPA_vect) {
+    PINB = 1 << 2;
+}
 
 ISR(PCINT0_vect){
     
@@ -188,11 +217,23 @@ ISR(PCINT0_vect){
     digital_write(cars);
 }
 
+ISR(ADC_vect){
 
+    /*
+    digital_write(ADCH);
+    ADCSRA |= (1<<ADSC);
+     */
 
+    if(flag){
+        if (ADCH > 128) {
+            OCR0A = 10;
+        } else {
+            OCR0A = 5;
+        }
+        // ADCSRA |= (1<<ADSC);
+    }
 
-
-
+}
 
 int main(void)
 {
